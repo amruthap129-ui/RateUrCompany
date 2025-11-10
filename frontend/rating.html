@@ -1,0 +1,77 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Submit Rating</title>
+  <style>
+    body{font-family:Arial;background:#f3f6fa;display:flex;align-items:center;justify-content:center;height:100vh}
+    .card{width:420px;background:#fff;padding:24px;border-radius:8px;box-shadow:0 8px 22px rgba(0,0,0,.08)}
+    h2{text-align:center;color:#0056b3}
+    label{display:block;margin-top:8px;font-weight:bold}
+    select,input{width:100%;padding:10px;margin-top:6px;border-radius:6px;border:1px solid #ccc}
+    button{width:100%;padding:10px;margin-top:12px;border:none;background:#007bff;color:#fff;border-radius:6px;cursor:pointer}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Rate Your Organization</h2>
+    <form id="ratingForm">
+      <label>Company Name</label>
+      <input id="company" required />
+
+      <label>Salary (1-5)</label>
+      <select id="salary">
+        <option value="1">1 - Poor</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
+      </select>
+
+      <label>Career Growth (1-5)</label>
+      <select id="growth"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select>
+
+      <label>Benefits (1-5)</label>
+      <select id="benefits"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select>
+
+      <label>Work-Life Balance (1-5)</label>
+      <select id="balance"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select>
+
+      <button type="submit">Submit Rating</button>
+    </form>
+  </div>
+
+  <script>
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    if (!user) { alert('Please login'); location.href = 'index.html'; }
+
+    document.getElementById('ratingForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const employee_id = user.id;
+      const company_name = document.getElementById('company').value.trim();
+      const salary = parseInt(document.getElementById('salary').value, 10);
+      const growth = parseInt(document.getElementById('growth').value, 10);
+      const benefits = parseInt(document.getElementById('benefits').value, 10);
+      const balance = parseInt(document.getElementById('balance').value, 10);
+
+      if (!company_name) return alert('Company required');
+
+      try {
+        const res = await fetch('http://localhost:3000/api/rating/submit', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ employee_id, company_name, salary, growth, benefits, balance })
+        });
+        const data = await res.json();
+        if (!res.ok) return alert(data.message || 'Unable to submit rating');
+
+        // set per-user flag
+        localStorage.setItem(`hasRated_${employee_id}`, 'true');        
+        setTimeout(() => window.location.href = 'dashboard.html', 200);
+        if (confirm('✅ Thank you! Your rating has been successfully saved.\nClick OK to go back to Dashboard.')) {
+        window.location.href = 'dashboard.html';
+      }
+      } catch (err) {
+        console.error(err);
+        alert('Server error');
+      }      
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+{
+  "name": "rateurcompany-tests",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "scripts": {
+    "start:backend": "node ../Backend/server.js",
+    "start:frontend": "http-server ../frontend -p 5500",
+    "test:e2e": "concurrently \"npm run start:backend\" \"npm run start:frontend\" \"npx playwright test --headed\"",
+    "test:admin": "concurrently \"npm run start:backend\" \"npm run start:frontend\" \"npx playwright test tests/specs/adminFlow.spec.ts --headed\"",
+    "test:user": "concurrently \"npm run start:backend\" \"npm run start:frontend\" \"npx playwright test tests/specs/userFlow.spec.ts --headed\"",
+    "test:fullflow": "concurrently \"npm run start:backend\" \"npm run start:frontend\" \"npx playwright test tests/specs/userFlow.spec.ts tests/specs/adminFlow.spec.ts --headed && npx playwright show-report\"",
+    "test:report": "concurrently \"npm run start:backend\" \"npm run start:frontend\" \"npx playwright test --reporter=html --headed && npx playwright show-report\""
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "concurrently": "^8.2.2",
+    "http-server": "^14.1.1"
+  },
+  "dependencies": {
+    "axios": "^1.13.2",
+    "better-sqlite3": "^12.4.1"
+  }
+}

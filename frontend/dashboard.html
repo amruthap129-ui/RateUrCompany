@@ -1,0 +1,113 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Dashboard</title>
+  <style>
+    body{font-family:Arial;background:#eef2f7;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:40px}
+    h1{color:#0056b3}
+    h3{text-align:center;color:#125eaf}
+    #ratingTable{border-collapse:collapse;width:80%;margin-top:20px}
+    th,td{border:1px solid #ccc;padding:10px;text-align:left}
+    th{background:#007bff;color:#fff}
+    #controls{margin:20px}
+    button{padding:10px 14px;margin-right:8px;border-radius:6px;border:none;background:#007bff;color:#fff;cursor:pointer}
+  </style>
+</head>
+<body>
+  <h1>Welcome to Rate Your Organization Portal</h1>
+
+  <div id="employeeSection">
+    <p>Would you like to rate your organization?</p>
+    <div id="controls">
+      <button id="rateButton">Yes, Rate Now</button>
+      <button id="logoutBtn">Logout</button>
+    </div>
+  </div>
+
+  <div id="adminSection" style="display:none">
+    <h3>Company-wise Ratings</h3>
+    <table id="ratingTable">
+      <thead>
+        <tr><th>Employee Name</th><th>Company</th><th>Avg Rating</th><th>Salary</th><th>Growth</th><th>Benefits</th><th>Balance</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div style="margin-top:16px"><button id="logoutAdmin">Logout</button></div>
+  </div>
+
+  <script>
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    if (!user) { alert('Please login'); location.href = 'index.html'; }
+    const employeeId = user.id;
+    const role = localStorage.getItem('role') || user.role || 'employee';
+
+    const rateButton = document.getElementById('rateButton');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    const hasRated = localStorage.getItem(`hasRated_${employeeId}`) === 'true';
+
+    if (role === 'admin') {
+      document.getElementById('employeeSection').style.display = 'none';
+      document.getElementById('adminSection').style.display = 'block';
+      loadAdminData();
+    } else {
+      document.getElementById('employeeSection').style.display = 'block';
+      document.getElementById('adminSection').style.display = 'none';
+      if (hasRated) {
+        rateButton.textContent = '✅ Already Rated';
+        rateButton.disabled = true;
+        rateButton.style.background = '#ccc';
+      }
+    }
+
+    rateButton.addEventListener('click', () => {
+      if (localStorage.getItem(`hasRated_${employeeId}`) === 'true') {
+        alert('✅ You have already submitted a rating.');
+        return;
+      }
+      window.location.href = 'rating.html';
+    });
+
+    function logoutAll() {
+      localStorage.removeItem('user');
+      localStorage.removeItem('employee_id');
+      localStorage.removeItem('employee_name');
+      localStorage.removeItem('role');
+      alert('You have logged out successfully.');
+      // optionally keep hasRated flags
+      window.location.href = 'index.html';
+    }
+
+    logoutBtn.addEventListener('click', logoutAll);
+    document.getElementById('logoutAdmin').addEventListener('click', logoutAll);
+
+    async function loadAdminData() {
+      try {
+        const res = await fetch('http://localhost:3000/api/admin/ratings');
+        const data = await res.json();
+        const tbody = document.querySelector('#ratingTable tbody');
+        tbody.innerHTML = '';
+        if (!data || data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7">No ratings yet</td></tr>';
+          return;
+        }
+        data.forEach(r => {
+          tbody.innerHTML += `<tr>
+            <td>${r.employee_name}</td>
+            <td>${r.company_name}</td>
+            <td>${r.avg_rating ? Number(r.avg_rating).toFixed(1) : '-'}</td>
+            <td>${r.salary}</td>
+            <td>${r.growth}</td>
+            <td>${r.benefits}</td>
+            <td>${r.balance}</td>
+          </tr>`;
+        });
+      } catch (err) {
+        console.error(err);
+        alert('Unable to load admin data');
+      }
+    }
+  </script>
+</body>
+</html>
