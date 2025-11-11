@@ -4,19 +4,60 @@
   <meta charset="utf-8">
   <title>Dashboard</title>
   <style>
-    body{font-family:Arial;background:#eef2f7;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:40px}
-    h1{color:#0056b3}
-    h3{text-align:center;color:#125eaf}
-    #ratingTable{border-collapse:collapse;width:80%;margin-top:20px}
-    th,td{border:1px solid #ccc;padding:10px;text-align:left}
-    th{background:#007bff;color:#fff}
-    #controls{margin:20px}
-    button{padding:10px 14px;margin-right:8px;border-radius:6px;border:none;background:#007bff;color:#fff;cursor:pointer}
+    body {
+      font-family: Arial;
+      background: #eef2f7;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 40px;
+    }
+    h1 { color: #0056b3; }
+    h3 { text-align: center; color: #125eaf; }
+    #ratingTable { border-collapse: collapse; width: 90%; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+    th { background: #007bff; color: #fff; }
+    #controls { margin: 20px; }
+    button {
+      padding: 10px 14px;
+      margin-right: 8px;
+      border-radius: 6px;
+      border: none;
+      background: #007bff;
+      color: #fff;
+      cursor: pointer;
+    }
+    button:hover { background: #0056b3; }
+    .pay-btn {
+        background: #28a745;
+    color: white;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    }
+    .pay-btn:disabled { background: #ccc; cursor: not-allowed; }
+    .no-pay { color: #777; font-style: italic; }
+    .statusCell {
+    text-align: center;
+    font-size: 14px;
+  }
+    .employee-company {
+      background: #fff;
+      padding: 20px;
+      margin-top: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      border-radius: 8px;
+      width: 60%;
+    }
   </style>
 </head>
+
 <body>
   <h1>Welcome to Rate Your Organization Portal</h1>
 
+  <!-- Employee Section -->
   <div id="employeeSection">
     <p>Would you like to rate your organization?</p>
     <div id="controls">
@@ -25,27 +66,46 @@
     </div>
   </div>
 
+  <!-- Employee Rating Summary -->
+  <div id="employeeCompanyRating" class="employee-company" style="display:none">
+    <h3>Your Company Rating Summary</h3>
+    <p id="companyInfo"></p>
+    <div id="paymentSection"></div>
+  </div>
+
+  <!-- Admin Section -->
   <div id="adminSection" style="display:none">
     <h3>Company-wise Ratings</h3>
     <table id="ratingTable">
       <thead>
-        <tr><th>Employee Name</th><th>Company</th><th>Avg Rating</th><th>Salary</th><th>Growth</th><th>Benefits</th><th>Balance</th></tr>
+        <tr>
+          <th>Employee Name</th>
+          <th>Company</th>
+          <th>Avg Rating</th>
+          <th>Salary</th>
+          <th>Growth</th>
+          <th>Benefits</th>
+          <th>Balance</th>
+          <th>Payment</th>
+        </tr>
       </thead>
       <tbody></tbody>
     </table>
-    <div style="margin-top:16px"><button id="logoutAdmin">Logout</button></div>
+    <div style="margin-top:16px">
+      <button id="logoutAdmin">Logout</button>
+    </div>
   </div>
 
   <script>
     const user = JSON.parse(localStorage.getItem('user') || 'null');
     if (!user) { alert('Please login'); location.href = 'index.html'; }
+
     const employeeId = user.id;
-    const role = localStorage.getItem('role') || user.role || 'employee';
+    const role = user.role || localStorage.getItem('role') || 'employee';
+    const hasRated = localStorage.getItem(`hasRated_${employeeId}`) === 'true';
+    const hasPaid = localStorage.getItem(`hasPaid_${employeeId}`) === 'true';
 
     const rateButton = document.getElementById('rateButton');
-    const logoutBtn = document.getElementById('logoutBtn');
-
-    const hasRated = localStorage.getItem(`hasRated_${employeeId}`) === 'true';
 
     if (role === 'admin') {
       document.getElementById('employeeSection').style.display = 'none';
@@ -58,55 +118,119 @@
         rateButton.textContent = '✅ Already Rated';
         rateButton.disabled = true;
         rateButton.style.background = '#ccc';
+        showUserCompanyRating();
       }
     }
 
     rateButton.addEventListener('click', () => {
-      if (localStorage.getItem(`hasRated_${employeeId}`) === 'true') {
-        alert('✅ You have already submitted a rating.');
-        return;
-      }
+      if (hasRated) return alert('✅ You already rated.');
       window.location.href = 'rating.html';
     });
 
     function logoutAll() {
       localStorage.removeItem('user');
-      localStorage.removeItem('employee_id');
-      localStorage.removeItem('employee_name');
       localStorage.removeItem('role');
-      alert('You have logged out successfully.');
-      // optionally keep hasRated flags
-      window.location.href = 'index.html';
+      alert('Logged out successfully.');
+      location.href = 'index.html';
     }
 
-    logoutBtn.addEventListener('click', logoutAll);
+    document.getElementById('logoutBtn').addEventListener('click', logoutAll);
     document.getElementById('logoutAdmin').addEventListener('click', logoutAll);
 
-    async function loadAdminData() {
+    async function showUserCompanyRating() {
       try {
         const res = await fetch('http://localhost:3000/api/admin/ratings');
         const data = await res.json();
-        const tbody = document.querySelector('#ratingTable tbody');
-        tbody.innerHTML = '';
-        if (!data || data.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="7">No ratings yet</td></tr>';
+        const company = data.find(d => d.employee_name.toLowerCase() === user.name.toLowerCase());
+
+        if (!company) {
+          document.getElementById('employeeCompanyRating').style.display = 'block';
+          document.getElementById('companyInfo').innerHTML = 'No company rating found yet.';
           return;
         }
-        data.forEach(r => {
-          tbody.innerHTML += `<tr>
+
+        const avg = parseFloat(company.avg_rating || 0).toFixed(2);
+        const section = document.getElementById('employeeCompanyRating');
+        const info = document.getElementById('companyInfo');
+        const paymentDiv = document.getElementById('paymentSection');
+
+        section.style.display = 'block';
+        info.innerHTML = `
+          <strong>Company:</strong> ${company.company_name}<br>
+          <strong>Average Rating:</strong> ${avg}
+        `;
+
+        if (hasPaid) {
+          paymentDiv.innerHTML = `<span style="color:green;font-weight:bold;">✅ Payment already done</span>`;
+          return;
+        }
+
+        if (avg >= 4) {
+          paymentDiv.innerHTML = `<button class="pay-btn" onclick="triggerPayment('${company.company_name}', 100, this)">💰 Pay</button>`;
+        } else {
+          paymentDiv.innerHTML = `<span class="no-pay">No payment needed</span>`;
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Unable to load company rating.');
+      }
+    }
+
+    async function triggerPayment(company_name, amount, button) {
+      const confirmPay = confirm(`📊 ${company_name} has an average rating above 4.0.\nProceed with payment of ₹${amount}?`);
+      if (!confirmPay) return;
+
+      button.disabled = true;
+      button.textContent = 'Processing...';
+      try {
+        const res = await fetch('http://localhost:3000/api/payment/process', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ company_name, amount, payment_method: 'stripe' })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          alert(`✅ Payment successful!\nTransaction ID: ${data.transaction_id}`);
+          button.textContent = '✅ Paid Successfully';
+          button.style.background = '#28a745';
+          localStorage.setItem(`hasPaid_${employeeId}`, 'true');
+        } else {
+          alert(`❌ Payment failed: ${data.message}`);
+          button.disabled = false;
+          button.textContent = '💰 Pay';
+        }
+      } catch (err) {
+        alert('⚠️ Payment service unavailable.');
+        button.disabled = false;
+        button.textContent = '💰 Pay';
+      }
+    }
+
+    async function loadAdminData() {
+      const res = await fetch('http://localhost:3000/api/admin/ratings');
+      const data = await res.json();
+      const tbody = document.querySelector('#ratingTable tbody');
+      tbody.innerHTML = '';
+
+      data.forEach(r => {
+        const avg = parseFloat(r.avg_rating || 0);
+        const paymentCell =
+          avg >= 4 && hasPaid
+            ? `<button class="pay-btn" onclick="triggerPayment('${r.company_name}', 100, this)">💰 Pay</button>`
+            : `<span class="no-pay">No payment needed/already paid</span>`;
+        tbody.innerHTML += `
+          <tr>
             <td>${r.employee_name}</td>
             <td>${r.company_name}</td>
-            <td>${r.avg_rating ? Number(r.avg_rating).toFixed(1) : '-'}</td>
+            <td>${avg.toFixed(2)}</td>
             <td>${r.salary}</td>
             <td>${r.growth}</td>
             <td>${r.benefits}</td>
             <td>${r.balance}</td>
+            <td>${paymentCell}</td>
           </tr>`;
-        });
-      } catch (err) {
-        console.error(err);
-        alert('Unable to load admin data');
-      }
+      });
     }
   </script>
 </body>

@@ -5,10 +5,10 @@ export class RatingPage {
 
   async submitRating(company: string) {
     await this.page.fill('#company', company);
-    await this.page.selectOption('#salary', '3');
-    await this.page.selectOption('#growth', '4');
+    await this.page.selectOption('#salary', '4');
+    await this.page.selectOption('#growth', '5');
     await this.page.selectOption('#benefits', '5');
-    await this.page.selectOption('#balance', '2');
+    await this.page.selectOption('#balance', '4');
     await this.page.click('button:has-text("Submit Rating")');
   }
 }

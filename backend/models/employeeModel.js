@@ -33,6 +33,17 @@ db.serialize(() => {
       FOREIGN KEY(employee_id) REFERENCES employees(id)
     )
   `);
+  db.run(`
+  CREATE TABLE IF NOT EXISTS payments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    company_name TEXT,
+    employee_name TEXT,
+    amount REAL,
+    transaction_id TEXT,
+    status TEXT DEFAULT 'success',
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
 
   // create a default admin (only if not exists)
   db.get("SELECT id FROM employees WHERE email = ?", ['admin@ryo.com'], (err, row) => {

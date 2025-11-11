@@ -8,6 +8,7 @@ const db = require('./models/employeeModel'); // sqlite db object
 const authRoutes = require('./routes/auth');
 const empRoutes = require('./routes/employee');
 const ratingRoutes = require('./routes/rating');
+const paymentRoutes = require('./routes/payment');
 
 const app = express();
 app.use(bodyParser.json());
@@ -17,6 +18,7 @@ app.use(cors());
 app.use('/api/auth', authRoutes);
 app.use('/api/employees', empRoutes);
 app.use('/api/rating', ratingRoutes);
+app.use('/api/payment', paymentRoutes);
 
 // admin endpoint: list ratings with employee name
 app.get('/api/admin/ratings', (req, res) => {
@@ -27,9 +29,11 @@ app.get('/api/admin/ratings', (req, res) => {
            r.growth,
            r.benefits,
            r.balance,
-           ( (r.salary + r.growth + r.benefits + r.balance) / 4.0 ) AS avg_rating
+           ((r.salary + r.growth + r.benefits + r.balance)/4.0) AS avg_rating,
+           COALESCE(p.status, 'pending') AS payment_status
     FROM ratings r
     JOIN employees e ON e.id = r.employee_id
+    LEFT JOIN payments p ON p.company_name = r.company_name AND p.employee_name = e.name
     ORDER BY r.company_name, e.name
   `;
   db.all(q, [], (err, rows) => {

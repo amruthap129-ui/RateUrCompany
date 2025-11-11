@@ -7,7 +7,7 @@
     "start:frontend": "http-server ../frontend -p 5500",
     "test:e2e": "concurrently \"npm run start:backend\" \"npm run start:frontend\" \"npx playwright test --headed\"",
     "test:admin": "concurrently \"npm run start:backend\" \"npm run start:frontend\" \"npx playwright test tests/specs/adminFlow.spec.ts --headed\"",
-    "test:user": "concurrently \"npm run start:backend\" \"npm run start:frontend\" \"npx playwright test tests/specs/userFlow.spec.ts --headed\"",
+    "test:user": "concurrently \"npm run start:backend\" \"npm run start:frontend\" \"npx playwright test tests/specs/userFlow.spec.ts --headed && npx playwright show-report\"",
     "test:fullflow": "concurrently \"npm run start:backend\" \"npm run start:frontend\" \"npx playwright test tests/specs/userFlow.spec.ts tests/specs/adminFlow.spec.ts --headed && npx playwright show-report\"",
     "test:report": "concurrently \"npm run start:backend\" \"npm run start:frontend\" \"npx playwright test --reporter=html --headed && npx playwright show-report\""
   },

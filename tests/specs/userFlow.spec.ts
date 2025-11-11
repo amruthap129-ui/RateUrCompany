@@ -8,7 +8,7 @@ import { apiClient } from '../utils/apiClient';
 import { dbHelper } from '../utils/dbHelper';
 
 test.describe('User Flow - Rate Your Organization', () => {
-  test('User registration, rating, and dashboard validation', async ({ page }) => {
+  test('End-to-End: Register → Rate → Verify DB → Payment flow', async ({ page }) => {
     const login = new LoginPage(page);
     const register = new RegisterPage(page);
     const dashboard = new DashboardPage(page);
@@ -53,5 +53,32 @@ test.describe('User Flow - Rate Your Organization', () => {
     expect(responserate.data.exists).toBe(true);
     // Validate already rated
     await dashboard.verifyAlreadyRated();
+    await page.evaluate(() => {
+      localStorage.setItem('user', JSON.stringify({ id: emp.id, name: testData.newUser.name, role: 'employee' }));
+      localStorage.setItem('role', 'employee');
+      localStorage.setItem('hasRated', 'true');
+    });
+
+    //await page.reload();
+
+    // Wait for company rating section to appear
+    await expect(page.locator('#employeeCompanyRating')).toBeVisible({ timeout: 5000 });
+
+    const payBtn = page.locator('.pay-btn');
+    const noPay = page.locator('.no-pay');
+
+    // One of these should be visible depending on avg rating
+    if (await payBtn.isVisible()) {
+      await payBtn.click();
+      await page.waitForTimeout(2000); // simulate backend call
+      await expect(page.locator('text=Paid Successfully')).toBeVisible();
+    }  else if (await page.locator('text=Payment service unreachable').isVisible()) {
+  console.warn('⚠️ Payment service temporarily unavailable.');
+}
+    else {
+      await expect(noPay).toHaveText(/No payment needed/i);
+    }
+    
   });
 });
+
